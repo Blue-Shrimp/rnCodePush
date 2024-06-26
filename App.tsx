@@ -8,6 +8,7 @@
 import React from 'react';
 import type {PropsWithChildren} from 'react';
 import {
+  Button,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -62,6 +63,10 @@ function App(): React.JSX.Element {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
 
+  const press = () => {
+    console.log('12322');
+  };
+
   return (
     <SafeAreaView style={backgroundStyle}>
       <StatusBar
@@ -90,6 +95,7 @@ function App(): React.JSX.Element {
             Read the docs to discover what to do next:
           </Section>
           <LearnMoreLinks />
+          <Button title="버튼" onPress={press} />
         </View>
       </ScrollView>
     </SafeAreaView>
