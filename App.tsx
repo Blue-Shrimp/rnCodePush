@@ -1,124 +1,111 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, {useState, useEffect} from 'react';
+import {StyleSheet, Text, View, Button} from 'react-native';
+import codePush, {
+  DownloadProgress,
+  RemotePackage,
+} from 'react-native-code-push';
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  Button,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+interface Progress {
+  receivedBytes: number;
+  totalBytes: number;
+}
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+const App: React.FC = () => {
+  const [updateInfo, setUpdateInfo] = useState<RemotePackage | null>(null);
+  const [progress, setProgress] = useState<Progress>({
+    receivedBytes: 0,
+    totalBytes: 0,
+  });
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+  useEffect(() => {
+    checkForUpdate();
+  }, []);
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  const checkForUpdate = async () => {
+    try {
+      const update = await codePush.checkForUpdate();
+      if (update) {
+        setUpdateInfo(update);
+        startUpdate();
+      } else {
+        console.log('No updates available');
+      }
+    } catch (error) {
+      console.error('Error checking for updates:', error);
+    }
+  };
+
+  const startUpdate = () => {
+    codePush.sync(
+      {
+        installMode: codePush.InstallMode.IMMEDIATE,
+      },
+      status => {
+        switch (status) {
+          case codePush.SyncStatus.CHECKING_FOR_UPDATE:
+            console.log('Checking for updates.');
+            break;
+          case codePush.SyncStatus.DOWNLOADING_PACKAGE:
+            console.log('Downloading package.');
+            break;
+          case codePush.SyncStatus.INSTALLING_UPDATE:
+            console.log('Installing update.');
+            break;
+          case codePush.SyncStatus.UP_TO_DATE:
+            console.log('Up-to-date.');
+            break;
+          case codePush.SyncStatus.UPDATE_INSTALLED:
+            console.log('Update installed.');
+            break;
+          default:
+            break;
+        }
+      },
+      (progress: DownloadProgress) => {
+        console.log(
+          `Received bytes: ${progress.receivedBytes}, Total bytes: ${progress.totalBytes}`,
+        );
+        setProgress({
+          receivedBytes: progress.receivedBytes,
+          totalBytes: progress.totalBytes,
+        });
+      },
+    );
+  };
+
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
+    <View style={styles.container}>
+      {updateInfo ? (
+        <View style={styles.updateInfo}>
+          <Text>App Version: {updateInfo.appVersion}</Text>
+          <Text>Label: {updateInfo.label}</Text>
+          <Text>Mandatory: {updateInfo.isMandatory ? 'Yes' : 'No'}</Text>
+          <Text>
+            Description: {updateInfo.description || 'No description available'}
+          </Text>
+          <Text>
+            Progress: {progress.receivedBytes}/{progress.totalBytes} bytes
+          </Text>
+        </View>
+      ) : (
+        <Text>No updates available</Text>
+      )}
+      <Button title="Check for Updates" onPress={checkForUpdate} />
     </View>
   );
-}
-
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
-  const press = () => {
-    console.log('12322');
-  };
-
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-          <Button title="버튼" onPress={press} />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
+};
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: 'white',
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
+  updateInfo: {
+    marginBottom: 20,
   },
 });
 
-export default App;
+export default codePush(App);
